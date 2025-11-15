@@ -20,6 +20,13 @@ sshServer.on("connection", (client, info) => {
       session.on("shell", (accept) => {
         const stream = accept()
         stream.write("Welcome to your Node.js SSH server!")
+        stream.on("data", (data) => {
+          // CTRL + C = ASCII 3
+          if (data[0] === 3) {
+            stream.close()
+            session.close
+          }
+        })
       })
     })
   })
