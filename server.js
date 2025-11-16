@@ -2,6 +2,7 @@ import pkg from "ssh2"
 const { Server } = pkg
 import fs from "fs"
 import { v4 as uuidv4 } from "uuid"
+import net from "net"
 
 const activeTunnels = {}
 
@@ -48,7 +49,7 @@ sshServer.on("connection", (client, info) => {
       if (name === "tcpip-forward") {
         console.log("yes tcp forward")
 
-        await new Promise((r) => setTimeout(r, 1000)) // 1 second
+        await new Promise((r) => setTimeout(r, 100)) // 1 second
 
         const user = activeTunnels[client.username]
 
@@ -64,26 +65,11 @@ sshServer.on("connection", (client, info) => {
           `Hi ${client.username}, Welcome to SSH Tunnel Server!  `
         )
 
-        // client.on("session", (accept) => {
-        //   const session = accept()
-        //   // session.on("pty", (accept) => accept && accept())
-        //   session.on("shell", (accept) => {
-        //     const stream = accept()
-        //     stream.write(
-        //       `Hi.. ${client.username}, you requested domain already exits, please try with another...   `
-        //     )
-        //     // if (user) {
-        //     //   stream.close()
-        //     //   session.close
-        //     // }
-        //   })
-        //   // session.close
-        // })
         // Handle reverse tunnel request
-        // handleReverseTunnel(client, accept, reject, info)
+        handleReverseTunnel(client, accept, reject, info)
       } else {
         console.log("no tcp forward")
-        await new Promise((r) => setTimeout(r, 1000)) // 1 second
+        await new Promise((r) => setTimeout(r, 100)) // 1 second
 
         shellStream.write(
           "Only Accepting Reverse tunnel requests. Try using the correct command..."
@@ -116,3 +102,36 @@ sshServer.on("connection", (client, info) => {
 sshServer.listen(22, "0.0.0.0", () => {
   console.log("SSH server listening on port 22")
 })
+
+// Handle Reverse Tunnel function
+async function handleReverseTunnel(client, accept, reject, info) {
+  const bindAddr = info.bindAddr
+  let bindPort = info.bindPort
+
+  const tcpServer = net.createServer((socket) => {
+    client.forwardOut(
+      info.bindAddr || "0.0.0.0",
+      bindPort,
+      info.destAddr || "localhost",
+      info.destPort,
+      (err, stream) => {
+        if (err) {
+          console.error("Forward error:", err)
+          socket.end()
+          return
+        }
+        socket.pipe(stream).pipe(socket)
+      }
+    )
+  })
+
+  tcpServer.listen(bindPort, info.bindAddr || "0.0.0.0", (err) => {
+    console.log(
+      `Reverse tunnel: ${bindPort} -> client:${info.destPort || bindPort}`
+    )
+  })
+
+  tcpServer.on("error", (err) => {
+    console.log(err)
+  })
+}
