@@ -15,7 +15,6 @@ sshServer.on("connection", (client, info) => {
   client.on("authentication", (ctx) => {
     client.username = ctx.username?.toLowerCase() || "user"
     client.sessionId = uuidv4()
-    console.log(client.sessionId)
 
     console.log("username", client.username, client.sessionId)
     ctx.accept()
@@ -35,11 +34,14 @@ sshServer.on("connection", (client, info) => {
         const user = activeTunnels[client.username]
 
         if (user) {
+          stream.write(
+            `Hi.. ${client.username}, you requested domain already exits, please try with another...   `
+          )
           stream.close()
           session.close
         }
         activeTunnels[client.username] = { sessionId: client.sessionId }
-        stream.write(`Hi.. ${client.username} Welcome to SSH Tunnel server!`)
+        stream.write(`Hi ${client.username}, Welcome to SSH Tunnel Server!  `)
         stream.on("data", (data) => {
           // CTRL + C = ASCII 3
           if (data[0] === 3) {
@@ -51,8 +53,15 @@ sshServer.on("connection", (client, info) => {
     })
 
     client.on("end", () => {
-      console.log(`❌ Disconnected: ${client.username}`)
-      delete activeTunnels[client.username]
+      console.log(`❌ Disconnected: ${client.username} ${client.sessionId}`)
+
+      const user = activeTunnels[client.username]
+
+      if (user && user.sessionId === client.sessionId) {
+        console.log("deleting the user from the tunnel")
+
+        delete activeTunnels[client.username]
+      }
     })
   })
 })
