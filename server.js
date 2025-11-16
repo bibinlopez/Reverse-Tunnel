@@ -9,7 +9,11 @@ const sshServer = new Server({
 sshServer.on("connection", (client, info) => {
   console.log(`SSH Connected from ${info.ip}`)
 
-  client.on("authentication", (ctx) => ctx.accept()) // No authentication
+  client.on("authentication", (ctx) => {
+    console.log("username", ctx.username)
+    client.username = ctx.username?.toLowerCase() || "user"
+    ctx.accept()
+  }) // No authentication
 
   client.on("ready", () => {
     console.log("Client authenticated!")
@@ -19,7 +23,7 @@ sshServer.on("connection", (client, info) => {
       session.on("pty", (accept) => accept && accept())
       session.on("shell", (accept) => {
         const stream = accept()
-        stream.write("Welcome to your Node.js SSH server!")
+        stream.write(`Hi.. ${client.username} Welcome to SSH Tunnel server!`)
         stream.on("data", (data) => {
           // CTRL + C = ASCII 3
           if (data[0] === 3) {
