@@ -1,7 +1,11 @@
-### Reverse Tunnel Server
+# Reverse Tunnel Server
 
-# Steps to Cover
+## Steps to Cover
 
-1 - create ssh server using ssh2 package
+# create ssh server using ssh2 package
+
 genereate host key: - ssh-keygen -t rsa -b 4096 -f host.key
-2 - accepting username , say to retry if username already exists.
+
+# authenticate the user - withou password
+
+# accepting username , say to retry if username already exists.

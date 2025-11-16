@@ -4,3 +4,5 @@
 /node_modules
 host.key
 host.key.pub
+
+.env
