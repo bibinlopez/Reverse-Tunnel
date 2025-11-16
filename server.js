@@ -1,6 +1,7 @@
 import pkg from "ssh2"
 const { Server } = pkg
 import fs from "fs"
+import { v4 as uuidv4 } from "uuid"
 
 const activeTunnels = {}
 
@@ -13,7 +14,10 @@ sshServer.on("connection", (client, info) => {
 
   client.on("authentication", (ctx) => {
     client.username = ctx.username?.toLowerCase() || "user"
-    console.log("username", client.username)
+    client.sessionId = uuidv4()
+    console.log(client.sessionId)
+
+    console.log("username", client.username, client.sessionId)
     ctx.accept()
   }) // No authentication
 
@@ -27,12 +31,14 @@ sshServer.on("connection", (client, info) => {
       session.on("pty", (accept) => accept && accept())
       session.on("shell", (accept) => {
         const stream = accept()
-        const username = client.username
-        if (activeTunnels[username]) {
+
+        const user = activeTunnels[client.username]
+
+        if (user) {
           stream.close()
           session.close
         }
-        activeTunnels[client.username] = {}
+        activeTunnels[client.username] = { sessionId: client.sessionId }
         stream.write(`Hi.. ${client.username} Welcome to SSH Tunnel server!`)
         stream.on("data", (data) => {
           // CTRL + C = ASCII 3
