@@ -68,7 +68,7 @@ sshServer.on("connection", (client, info) => {
         )
 
         // Handle reverse tunnel request
-        handleReverseTunnel(client, accept, reject, info)
+        handleReverseTunnel(client, accept, reject, info, shellStream)
       } else {
         console.log("no tcp forward")
         await new Promise((r) => setTimeout(r, 100)) // 1 second
@@ -106,25 +106,31 @@ const port =
     ? process.env.PROD_SSH_PORT
     : process.env.DEV_SSH_PORT
 
-console.log(port, "port")
-
 sshServer.listen(port, "0.0.0.0", () => {
   console.log(`SSH server listening on port ${port}`)
 })
 
 // Handle Reverse Tunnel function
-async function handleReverseTunnel(client, accept, reject, info) {
+async function handleReverseTunnel(client, accept, reject, info, shellStream) {
+  console.log({ info })
+
   const bindAddr = info.bindAddr
   let bindPort = info.bindPort
 
   console.log("dest address", info.destAddr)
+  console.log("dest port", info.destPort)
+
+  const customPort = 4000
+
+  const user = activeTunnels[client.username]
+  activeTunnels[client.username] = { ...user, port: customPort }
 
   const tcpServer = net.createServer((socket) => {
     client.forwardOut(
-      info.bindAddr || "0.0.0.0",
+      bindAddr || "0.0.0.0",
       bindPort,
-      info.destAddr || "localhost",
-      info.destPort,
+      bindAddr || "localhost",
+      info.destPort || bindPort,
       (err, stream) => {
         if (err) {
           console.error("Forward error:", err)
@@ -136,11 +142,15 @@ async function handleReverseTunnel(client, accept, reject, info) {
     )
   })
 
-  tcpServer.listen(bindPort, info.bindAddr || "0.0.0.0", (err) => {
+  tcpServer.listen(customPort, info.bindAddr || "0.0.0.0", (err) => {
     console.log(
-      `Reverse tunnel: ${bindPort} -> client:${info.destPort || bindPort}`
+      `Reverse tunnel: ${customPort} -> client:${info.destPort || bindPort}`
     )
   })
+
+  shellStream.write(
+    `hi your server is listening on public , http://localhost:${customPort}`
+  )
 
   tcpServer.on("error", (err) => {
     console.log(err)
