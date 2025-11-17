@@ -5,6 +5,7 @@ const { Server } = pkg
 import fs from "fs"
 import { v4 as uuidv4 } from "uuid"
 import net from "net"
+import http from "http"
 
 const activeTunnels = {}
 
@@ -101,13 +102,13 @@ sshServer.on("connection", (client, info) => {
   })
 })
 
-const port =
+const sshPort =
   process.env.NODE_ENV === "production"
     ? process.env.PROD_SSH_PORT
     : process.env.DEV_SSH_PORT
 
-sshServer.listen(port, "0.0.0.0", () => {
-  console.log(`SSH server listening on port ${port}`)
+sshServer.listen(sshPort, "0.0.0.0", () => {
+  console.log(`SSH server listening on port ${sshPort}`)
 })
 
 // Handle Reverse Tunnel function
@@ -156,3 +157,36 @@ async function handleReverseTunnel(client, accept, reject, info, shellStream) {
     console.log(err)
   })
 }
+
+// http server
+const httpServer = http.createServer(async (req, res) => {
+  const host = req.headers.host
+  if (!host) return res.end("Missing Host header")
+  console.log(host, "host")
+
+  const subdomain = host.split(".")[0]
+  console.log(subdomain, "sbudomain")
+  // await new Promise((res) => setTimeout(res, 1000)) // waits 3 seconds
+  console.log({ activeTunnels })
+
+  const tunnel = activeTunnels[subdomain]
+
+  // if (!tunnel) {
+  //   res.statusCode = 502
+  //   return res.end(`No active tunnel for ${subdomain}`)
+  // }
+
+  if (!tunnel) {
+    res.end("Invalid url")
+    return
+  }
+})
+
+const httpPort =
+  process.env.NODE_ENV === "production"
+    ? process.env.PROD_HTTP_PORT
+    : process.env.DEV_HTTP_PORT
+
+httpServer.listen(httpPort, () =>
+  console.log(`🌍 HTTP proxy on port ${httpPort}`)
+)
