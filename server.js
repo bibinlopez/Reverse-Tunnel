@@ -6,11 +6,14 @@ import fs from "fs"
 import { v4 as uuidv4 } from "uuid"
 import net from "net"
 import http from "http"
+import httpProxy from "http-proxy"
 
 const httpPort =
   process.env.NODE_ENV === "production"
     ? process.env.PROD_HTTP_PORT
     : process.env.DEV_HTTP_PORT
+
+const proxy = httpProxy.createProxyServer({})
 
 const activeTunnels = {}
 
@@ -186,10 +189,10 @@ const httpServer = http.createServer(async (req, res) => {
     return
   }
 
-  // proxy.web(req, res, { target: `http://localhost:${tunnel.port}` }, (err) => {
-  //   res.statusCode = 502
-  //   res.end("Proxy error: " + err.message)
-  // })
+  proxy.web(req, res, { target: `http://localhost:${tunnel.port}` }, (err) => {
+    res.statusCode = 502
+    res.end("Proxy error: " + err.message)
+  })
 })
 
 httpServer.listen(httpPort, () =>
