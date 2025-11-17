@@ -1,3 +1,5 @@
+import dotenv from "dotenv"
+dotenv.config()
 import pkg from "ssh2"
 const { Server } = pkg
 import fs from "fs"
@@ -99,14 +101,23 @@ sshServer.on("connection", (client, info) => {
   })
 })
 
-sshServer.listen(22, "0.0.0.0", () => {
-  console.log("SSH server listening on port 22")
+const port =
+  process.env.NODE_ENV === "production"
+    ? process.env.PROD_SSH_PORT
+    : process.env.DEV_SSH_PORT
+
+console.log(port, "port")
+
+sshServer.listen(port, "0.0.0.0", () => {
+  console.log(`SSH server listening on port ${port}`)
 })
 
 // Handle Reverse Tunnel function
 async function handleReverseTunnel(client, accept, reject, info) {
   const bindAddr = info.bindAddr
   let bindPort = info.bindPort
+
+  console.log("dest address", info.destAddr)
 
   const tcpServer = net.createServer((socket) => {
     client.forwardOut(
