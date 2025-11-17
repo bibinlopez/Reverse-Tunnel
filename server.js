@@ -7,6 +7,11 @@ import { v4 as uuidv4 } from "uuid"
 import net from "net"
 import http from "http"
 
+const httpPort =
+  process.env.NODE_ENV === "production"
+    ? process.env.PROD_HTTP_PORT
+    : process.env.DEV_HTTP_PORT
+
 const activeTunnels = {}
 
 const sshServer = new Server({
@@ -150,7 +155,7 @@ async function handleReverseTunnel(client, accept, reject, info, shellStream) {
   })
 
   shellStream.write(
-    `hi your server is listening on public , http://localhost:${customPort}`
+    `hi your server is listening on public , http://${client.username}.localhost:${httpPort}`
   )
 
   tcpServer.on("error", (err) => {
@@ -180,12 +185,12 @@ const httpServer = http.createServer(async (req, res) => {
     res.end("Invalid url")
     return
   }
-})
 
-const httpPort =
-  process.env.NODE_ENV === "production"
-    ? process.env.PROD_HTTP_PORT
-    : process.env.DEV_HTTP_PORT
+  // proxy.web(req, res, { target: `http://localhost:${tunnel.port}` }, (err) => {
+  //   res.statusCode = 502
+  //   res.end("Proxy error: " + err.message)
+  // })
+})
 
 httpServer.listen(httpPort, () =>
   console.log(`🌍 HTTP proxy on port ${httpPort}`)
