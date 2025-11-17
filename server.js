@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid"
 import net from "net"
 import http from "http"
 import httpProxy from "http-proxy"
+import getPort, { portNumbers } from "get-port"
 
 const httpPort =
   process.env.NODE_ENV === "production"
@@ -129,7 +130,7 @@ async function handleReverseTunnel(client, accept, reject, info, shellStream) {
   console.log("dest address", info.destAddr)
   console.log("dest port", info.destPort)
 
-  const customPort = 4000
+  const customPort = await getPort(portNumbers(1024, 49151))
 
   const user = activeTunnels[client.username]
   activeTunnels[client.username] = { ...user, port: customPort }
@@ -157,9 +158,12 @@ async function handleReverseTunnel(client, accept, reject, info, shellStream) {
     )
   })
 
-  shellStream.write(
-    `hi your server is listening on public , http://${client.username}.localhost:${httpPort}`
-  )
+  let link =
+    process.env.NODE_ENV === "production"
+      ? `https://${client.username}.${process.env.PUBLIC_DOMAIN}`
+      : `http://${client.username}.localhost:${httpPort}`
+
+  shellStream.write(`hi your server is listening on public , ${link}`)
 
   tcpServer.on("error", (err) => {
     console.log(err)
