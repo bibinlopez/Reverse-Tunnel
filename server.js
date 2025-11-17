@@ -65,9 +65,16 @@ sshServer.on("connection", (client, info) => {
 
         const user = activeTunnels[client.username]
 
+        if (info.bindPort !== 80) {
+          shellStream.write(
+            `Hi.. ${client.username}, you requested port ${info.bindPort} is invalid, please try again with port:80     `
+          )
+          shellStream.close()
+          sessionReady.close
+        }
         if (user) {
           shellStream.write(
-            `Hi.. ${client.username}, you requested domain already exits, please try with another...   `
+            `Hi.. ${client.username}, you requested domain already exits, please try again with another...   `
           )
           shellStream.close()
           sessionReady.close
@@ -177,9 +184,6 @@ const httpServer = http.createServer(async (req, res) => {
   console.log(host, "host")
 
   const subdomain = host.split(".")[0]
-  console.log(subdomain, "sbudomain")
-  // await new Promise((res) => setTimeout(res, 1000)) // waits 3 seconds
-  console.log({ activeTunnels })
 
   const tunnel = activeTunnels[subdomain]
 
